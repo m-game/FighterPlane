@@ -1,0 +1,74 @@
+import pyglet
+from cocos.actions import MoveBy
+from cocos.director import director
+from cocos.layer import Layer
+from cocos.scene import Scene
+from cocos.sprite import Sprite
+
+BUTTON_LEFT = 0x00000001
+BUTTON_MIDDLE = 0x00000002
+BUTTON_RIGHT = 0x00000004
+
+Z_Plane = 3
+Z_Bullet = 2
+
+
+class Bullet(Layer):
+    is_event_handler = True
+
+    def __init__(self, position):
+        super(Bullet, self).__init__()
+        image = pyglet.resource.image('bullet_205px_1235397_easyicon.net.png')
+        self.sprite = Sprite(image, position=position)
+        self.sprite.scale = 0.03
+        self.add(self.sprite)
+        action = MoveBy((0, 480), duration=1)
+
+        def stop():
+            main_scene.remove(self)
+
+        action.stop = stop
+        self.sprite.do(action)
+
+
+class Plane(Layer):
+    is_event_handler = True
+
+    def __init__(self, parent):
+        super(Plane, self).__init__()
+        self.parent = parent
+        self.position = [0, 0]
+        image = pyglet.resource.image('airplane_710px_1219057_easyicon.net.png')
+        self.sprite = Sprite(image, position=self.position)
+        self.sprite.scale = 0.1
+        self.add(self.sprite)
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        self.move(x, y)
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self.move(x, y)
+
+    def on_mouse_press(self, x, y, buttons, modifiers):
+        if buttons == BUTTON_LEFT:
+            self.fire(x, y)
+        elif buttons == BUTTON_RIGHT:
+            self.bomb(x, y)
+
+    def move(self, x, y):
+        self.sprite.position = director.get_virtual_coordinates(x, y)
+
+    def fire(self, x, y):
+        self.parent.add(Bullet([x - 26, y + 18]), z=Z_Bullet)
+        self.parent.add(Bullet([x - 16, y + 25]), z=Z_Bullet)
+        self.parent.add(Bullet([x + 16, y + 25]), z=Z_Bullet)
+        self.parent.add(Bullet([x + 26, y + 18]), z=Z_Bullet)
+
+    def bomb(self, x, y):
+        self.parent.add(Bullet([x, y + 42]), z=Z_Bullet)
+
+
+director.init()
+main_scene = Scene()
+main_scene.add(Plane(main_scene), z=Z_Plane)
+director.run(main_scene)
